@@ -87,20 +87,20 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </style>
 
 
-<script src="MIRA_files/libs/clipboard/clipboard.min.js"></script>
-<script src="MIRA_files/libs/quarto-html/quarto.js"></script>
-<script src="MIRA_files/libs/quarto-html/popper.min.js"></script>
-<script src="MIRA_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="MIRA_files/libs/quarto-html/anchor.min.js"></script>
-<link href="MIRA_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="MIRA_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="MIRA_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="MIRA_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="MIRA_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
-<script src="MIRA_files/libs/htmlwidgets-1.6.0/htmlwidgets.js"></script>
-<script src="MIRA_files/libs/viz-1.8.2/viz.js"></script>
-<link href="MIRA_files/libs/DiagrammeR-styles-0.2/styles.css" rel="stylesheet">
-<script src="MIRA_files/libs/grViz-binding-1.0.9/grViz.js"></script>
+<script src="index_files/libs/clipboard/clipboard.min.js"></script>
+<script src="index_files/libs/quarto-html/quarto.js"></script>
+<script src="index_files/libs/quarto-html/popper.min.js"></script>
+<script src="index_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="index_files/libs/quarto-html/anchor.min.js"></script>
+<link href="index_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="index_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="index_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="index_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="index_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="index_files/libs/htmlwidgets-1.5.4/htmlwidgets.js"></script>
+<script src="index_files/libs/viz-1.8.2/viz.js"></script>
+<link href="index_files/libs/DiagrammeR-styles-0.2/styles.css" rel="stylesheet">
+<script src="index_files/libs/grViz-binding-1.0.9/grViz.js"></script>
 
 
 </head>
@@ -137,7 +137,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h2 class="anchored" data-anchor-id="outline">Outline</h2>
 <ul>
 <li><p><a href="#mira">Overview of MIRA</a></p></li>
-<li><p><a href="#containerizing-mira">Containerizing MIRA</a></p></li>
+<li><p><a href="#containerizing-mira">Containerizing MIRA with Docker and Docker-Compose</a></p></li>
 <li><p><a href="#github-workflows">Creating Github.io pages for MIRA using GitHub Actions</a></p></li>
 </ul>
 </section>
@@ -156,8 +156,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </ul>
 <div class="cell">
 <div class="cell-output-display">
-<div class="grViz html-widget html-fill-item-overflow-hidden html-fill-item" id="htmlwidget-9fadd2ac70a182780468" style="width:100%;height:464px;"></div>
-<script type="application/json" data-for="htmlwidget-9fadd2ac70a182780468">{"x":{"diagram":"\ndigraph nicegraph {\n\n  # graph, node, and edge definitions\n  graph [compound = true, nodesep = 3, ranksep = 2]\n\n  node [fontname = Helvetica, fontcolor = darkslategray,\n        shape = rectangle, penwidth = 5, height = 5]\n\n  edge [color = grey, arrowhead = normal, arrowtail = none, \n        arrowsize = 2, fontsize = 120, penwidth = 10]\n        \n  # subgraph for frontend\n  subgraph cluster0 {\n    label = \"Docker-Compose\";\n    fontname = Helvetica;\n    fontsize = 200;\n    color = black;\n    penwidth = 5;\n    \n    subgraph cluster1 {\n      label = \"Frontend\";\n      fontsize = 150;\n      color = \"brown\";\n      penwidth = 5;\n    \n      subgraph cluster2 {\n        label = \"Container 1\";\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        MIRA [label = \"MIRA\\n(GUI)\", width = 30, fontsize = 120];\n      }\n    }\n      \n    subgraph cluster3 {\n      label = \"Backend\";\n      fontsize = 150;\n      color = \"brown\";\n      penwidth = 5;\n     \n      subgraph cluster4 {\n        label = \"Container 2\";\n        labeldistance = 10;\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        SPYNE [label = \"SPYNE\\n(Snakemake Manager)\", width = 30, fontsize = 120];\n        CONFIG [label = \"Run Configs\", width = 15, fontsize = 120];\n        CURATION [label = \"Curation, QC &\\nFigure Generation\", width = 15, fontsize = 120];\n       }\n      \n      subgraph cluster5 {\n        label = \"Container 3\";\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        IRMA [label = \"IRMA\\n(Genome and Spike-Gene Assembly)\", width = 30, fontsize = 120];\n      }\n      \n      subgraph cluster6 {\n        label = \"Container 4\";\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        DAIS [label = \"DAIS-Ribosome\\n(Curation)\", width = 20, fontsize = 120];\n      }\n      \n    }\n  }\n  \n  subgraph cluster7 {\n    label = \"Local Filesystem\";\n    fontname = Helvetica;\n    fontsize = 150;\n    color = purple;\n    penwidth = 5;\n    \n    DS [label = \"Docker\\nSocket\", width = 18, fontsize = 120];\n    RESULTS [label = \"Sequencing Files\\nDirectory\", width = 18, fontsize = 120];\n  }\n    \n  MIRA -> SPYNE [label = \"trigger\", color=\"green\"]\n  SPYNE -> IRMA [label = \"Orchestrate\", color=\"green\"]\n  SPYNE -> DAIS [label = \"Orchestrate\", color=\"green\"]\n  SPYNE -> CURATION [label = \"Orchestrate\", color=\"brown\", style = dashed]\n  DS -> MIRA [arrowhead = none, arrowtail = none, style = dashed, color=\"blue\", alpha = 0.5]\n  DS -> IRMA [arrowhead = none, arrowtail = none, style = dashed, color=\"blue\", alpha = 0.5]\n  DS -> DAIS [arrowhead = none, arrowtail = none, style = dashed, color=\"blue\", alpha = 0.5]\n  MIRA -> RESULTS [color = \"black\"]\n  IRMA -> RESULTS [color = \"black\"]\n  DAIS -> RESULTS [color = \"black\"]\n  SPYNE -> RESULTS [color = \"black\"]\n  CURATION -> RESULTS [color = \"black\"]\n  SPYNE -> CONFIG [color=\"brown\", style = dashed, penwidth = 10]\n  \n}\n\n","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-32cfbf889cffaa81ccaa" style="width:100%;height:464px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-32cfbf889cffaa81ccaa">{"x":{"diagram":"\ndigraph nicegraph {\n\n  # graph, node, and edge definitions\n  graph [compound = true, nodesep = 3, ranksep = 2]\n\n  node [fontname = Helvetica, fontcolor = darkslategray,\n        shape = rectangle, penwidth = 5, height = 5]\n\n  edge [color = grey, arrowhead = normal, arrowtail = none, \n        arrowsize = 2, fontsize = 120, penwidth = 10]\n        \n  # subgraph for frontend\n  subgraph cluster0 {\n    label = \"Docker-Compose\";\n    fontname = Helvetica;\n    fontsize = 200;\n    color = black;\n    penwidth = 5;\n    \n    subgraph cluster1 {\n      label = \"Frontend\";\n      fontsize = 150;\n      color = \"brown\";\n      penwidth = 5;\n    \n      subgraph cluster2 {\n        label = \"Container 1\";\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        MIRA [label = \"MIRA\\n(GUI)\", width = 30, fontsize = 120];\n      }\n    }\n      \n    subgraph cluster3 {\n      label = \"Backend\";\n      fontsize = 150;\n      color = \"brown\";\n      penwidth = 5;\n     \n      subgraph cluster4 {\n        label = \"Container 2\";\n        labeldistance = 10;\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        SPYNE [label = \"SPYNE\\n(Snakemake Manager)\", width = 30, fontsize = 120];\n        CONFIG [label = \"Run Configs\", width = 15, fontsize = 120];\n        CURATION [label = \"Curation, QC &\\nFigure Generation\", width = 15, fontsize = 120];\n       }\n      \n      subgraph cluster5 {\n        label = \"Container 3\";\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        IRMA [label = \"IRMA\\n(Genome and Spike-Gene Assembly)\", width = 30, fontsize = 120];\n      }\n      \n      subgraph cluster6 {\n        label = \"Container 4\";\n        fontname = Helvetica;\n        fontsize = 120;\n        color = none;\n        \n        DAIS [label = \"DAIS-Ribosome\\n(Curation)\", width = 20, fontsize = 120];\n      }\n      \n    }\n  }\n  \n  subgraph cluster7 {\n    label = \"Local Filesystem\";\n    fontname = Helvetica;\n    fontsize = 150;\n    color = purple;\n    penwidth = 5;\n    \n    DS [label = \"Docker\\nSocket\", width = 18, fontsize = 120];\n    RESULTS [label = \"Sequencing Files\\nDirectory\", width = 18, fontsize = 120];\n  }\n    \n  MIRA -> SPYNE [label = \"trigger\", color=\"green\"]\n  SPYNE -> IRMA [label = \"Orchestrate\", color=\"green\"]\n  SPYNE -> DAIS [label = \"Orchestrate\", color=\"green\"]\n  SPYNE -> CURATION [label = \"Orchestrate\", color=\"brown\", style = dashed]\n  DS -> MIRA [arrowhead = none, arrowtail = none, style = dashed, color=\"blue\", alpha = 0.5]\n  DS -> IRMA [arrowhead = none, arrowtail = none, style = dashed, color=\"blue\", alpha = 0.5]\n  DS -> DAIS [arrowhead = none, arrowtail = none, style = dashed, color=\"blue\", alpha = 0.5]\n  MIRA -> RESULTS [color = \"black\"]\n  IRMA -> RESULTS [color = \"black\"]\n  DAIS -> RESULTS [color = \"black\"]\n  SPYNE -> RESULTS [color = \"black\"]\n  CURATION -> RESULTS [color = \"black\"]\n  SPYNE -> CONFIG [color=\"brown\", style = dashed, penwidth = 10]\n  \n}\n\n","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 </div>
 </div>
 </section>

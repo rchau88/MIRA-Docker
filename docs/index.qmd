@@ -1,0 +1,498 @@
+---
+title: "Containerizing MIRA"
+author: Ben Rambo-Martin, Kristine Lacek, Reina Chau
+format: html
+editor: visual
+---
+
+## Outline
+
+-   <a href="#mira">Overview of MIRA</a>
+
+-   <a href="#containerizing-mira">Containerizing MIRA with Docker and Docker-Compose</a>
+
+-   <a href="#github-workflows">Creating Github.io pages for MIRA using GitHub Actions</a>
+
+## <a href="https://github.com/nbx0/MIRA">MIRA</a>
+
+**MIRA** is a GUI web interface that allows users to interactively create a metadata and config file for running Influenza Genome and SARS-CoV-2 Spike-Gene assembly and curation. It is built using [**Dash**](https://dash.plotly.com/introduction), a python framework written on the top of **Flask**, **Plotly.js** and **React.js**.
+
+## MIRA Workflows
+
+MIRA's dashboard relies on four Docker containers to run its genome assembly and curation:
+
+-   **IRMA (Iterative Refinement Meta-Assembler):** designed for the robust assembly, variant calling, and phasing of highly variable RNA viruses. IRMA is deployed with modules for influenza, ebolavirus and coronavirus.
+
+-   **DAIS-Ribosome:** compartmentalizes the translation engine developed for the CDC Influenza Division protein analytics database. The tool has been extended for use with Betacoronavirus.
+
+-   **spyne:** a Snakemake workflow manager designed for running Influenza Genome and SARS-CoV-2 Spike-Gene assembly.
+
+-   **MIRA:** a GUI web interface that allows users to interactively create a metadata and config file for running Influenza Genome and SARS-CoV-2 Spike-Gene assembly and curation.
+
+```{r include=TRUE, echo=FALSE, warning=FALSE}
+library(DiagrammeR)
+
+DiagrammeR::grViz("
+digraph nicegraph {
+
+  # graph, node, and edge definitions
+  graph [compound = true, nodesep = 3, ranksep = 2]
+
+  node [fontname = Helvetica, fontcolor = darkslategray,
+        shape = rectangle, penwidth = 5, height = 5]
+
+  edge [color = grey, arrowhead = normal, arrowtail = none, 
+        arrowsize = 2, fontsize = 120, penwidth = 10]
+        
+  # subgraph for frontend
+  subgraph cluster0 {
+    label = 'Docker-Compose';
+    fontname = Helvetica;
+    fontsize = 200;
+    color = black;
+    penwidth = 5;
+    
+    subgraph cluster1 {
+      label = 'Frontend';
+      fontsize = 150;
+      color = 'brown';
+      penwidth = 5;
+    
+      subgraph cluster2 {
+        label = 'Container 1';
+        fontname = Helvetica;
+        fontsize = 120;
+        color = none;
+        
+        MIRA [label = 'MIRA\\n(GUI)', width = 30, fontsize = 120];
+      }
+    }
+      
+    subgraph cluster3 {
+      label = 'Backend';
+      fontsize = 150;
+      color = 'brown';
+      penwidth = 5;
+     
+      subgraph cluster4 {
+        label = 'Container 2';
+        labeldistance = 10;
+        fontname = Helvetica;
+        fontsize = 120;
+        color = none;
+        
+        SPYNE [label = 'SPYNE\\n(Snakemake Manager)', width = 30, fontsize = 120];
+        CONFIG [label = 'Run Configs', width = 15, fontsize = 120];
+        CURATION [label = 'Curation, QC &\\nFigure Generation', width = 15, fontsize = 120];
+       }
+      
+      subgraph cluster5 {
+        label = 'Container 3';
+        fontname = Helvetica;
+        fontsize = 120;
+        color = none;
+        
+        IRMA [label = 'IRMA\\n(Genome and Spike-Gene Assembly)', width = 30, fontsize = 120];
+      }
+      
+      subgraph cluster6 {
+        label = 'Container 4';
+        fontname = Helvetica;
+        fontsize = 120;
+        color = none;
+        
+        DAIS [label = 'DAIS-Ribosome\\n(Curation)', width = 20, fontsize = 120];
+      }
+      
+    }
+  }
+  
+  subgraph cluster7 {
+    label = 'Local Filesystem';
+    fontname = Helvetica;
+    fontsize = 150;
+    color = purple;
+    penwidth = 5;
+    
+    DS [label = 'Docker\\nSocket', width = 18, fontsize = 120];
+    RESULTS [label = 'Sequencing Files\\nDirectory', width = 18, fontsize = 120];
+  }
+    
+  MIRA -> SPYNE [label = 'trigger', color='green']
+  SPYNE -> IRMA [label = 'Orchestrate', color='green']
+  SPYNE -> DAIS [label = 'Orchestrate', color='green']
+  SPYNE -> CURATION [label = 'Orchestrate', color='brown', style = dashed]
+  DS -> MIRA [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
+  DS -> IRMA [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
+  DS -> DAIS [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
+  MIRA -> RESULTS [color = 'black']
+  IRMA -> RESULTS [color = 'black']
+  DAIS -> RESULTS [color = 'black']
+  SPYNE -> RESULTS [color = 'black']
+  CURATION -> RESULTS [color = 'black']
+  SPYNE -> CONFIG [color='brown', style = dashed, penwidth = 10]
+  
+}
+
+")
+```
+
+## Containerizing MIRA
+
+## 1. <a href="https://docs.docker.com/get-started/overview/">Docker</a>
+
+Docker is **a software platform that allows you to build, test, and deploy applications quickly**. Docker packages software into standardized units called containers that have everything the software needs to run including libraries, system tools, code, and runtime.
+
+Docker builds images automatically by reading the instructions from a ***Dockerfile.*** A Dockerfile is **a text document that contains all the commands a user could call on the command line to assemble an image**.
+
+Below is an example of a Dockerfile that is used to built the MIRA images.
+
+``` bash
+# Create a build argument
+ARG BUILD_STAGE
+ARG BUILD_STAGE=${BUILD_STAGE:-prod}
+
+############# Build Stage: Dependencies ##################
+
+# Start from a base image
+FROM --platform=linux/amd64 ubuntu:focal as base
+
+# Define a system argument
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install system libraries of general use
+RUN apt-get update --allow-releaseinfo-change && apt-get install --no-install-recommends -y \
+    build-essential \ 
+    iptables \
+    libdevmapper1.02.1 \
+    python3.7\
+    python3-pip \
+    python3-setuptools \
+    python3-dev \
+    dpkg \
+    sudo \
+    wget \
+    curl \
+    dos2unix
+
+############# Build Stage: Development ##################
+
+# Build from the base image for dev
+FROM base as dev
+
+# Create working directory variable
+ENV WORKDIR=/data
+
+# Create a stage enviroment
+ENV STAGE=dev
+
+############# Build Stage: Production ##################
+
+# Build from the base image for prod
+FROM base as prod
+
+# Create working directory variable
+ENV WORKDIR=/data
+
+# Create a stage enviroment
+ENV STAGE=prod
+
+# Copy all scripts to docker images
+COPY . /MIRA
+
+############# Build Stage: Final ##################
+
+# Build the final image 
+FROM ${BUILD_STAGE} as final
+
+# Set up volume directory in docker
+VOLUME ${WORKDIR}
+
+# Set up working directory in docker
+WORKDIR ${WORKDIR}
+
+# Allow permission to read and write files to current working directory
+RUN chmod -R a+rwx ${WORKDIR}
+
+############# Install Docker ##################
+
+# Copy all files to docker images
+COPY docker /MIRA/docker
+
+# Copy all files to docker images
+COPY install_docker.sh /MIRA/install_docker.sh
+
+# Convert bash script from Windows style line endings to Unix-like control characters
+RUN dos2unix /MIRA/install_docker.sh
+
+# Allow permission to excute the bash script
+RUN chmod a+x /MIRA/install_docker.sh
+
+# Execute bash script to install the package
+RUN bash /MIRA/install_docker.sh
+
+############# Install python packages ##################
+
+# Copy python requirements file to docker images
+COPY requirements.txt /MIRA/requirements.txt
+
+# Install python requirements
+RUN pip3 install --no-cache-dir -r /MIRA/requirements.txt
+
+############# Launch MIRA dashboard ##################
+
+# Copy all files to docker images
+COPY dashboard-kickoff /MIRA/dashboard-kickoff
+
+# Convert bash script from Windows style line endings to Unix-like control characters
+RUN dos2unix /MIRA/dashboard-kickoff
+
+# Allow permission to excute the bash scripts
+RUN chmod a+x /MIRA/dashboard-kickoff
+
+# Allow permission to read and write files to MIRA directory
+RUN chmod -R a+rwx /MIRA
+
+# Make the app available at port 8050
+EXPOSE 8050
+
+# Clean up
+RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Export bash script to path
+ENV PATH "$PATH:/MIRA"
+
+# Execute the pipeline 
+ENTRYPOINT ["bash", "dashboard-kickoff"]
+```
+
+To build a docker image for <b>MIRA</b>, `cd` to where <b>Dockerfile</b> is stored and run the following command.
+
+``` bash
+docker build -t MIRA:v1.0.0 .
+```
+
+To run <b>MIRA</b> container
+
+``` bash
+docker run \
+-v /path/to/data:/data \
+-v /path/to/MIRA:/MIRA \
+-v /var/run/docker.sock:/var/run/docker.sock \
+-d -p 8080:8050 --name MIRA MIRA:v1.0.0 
+```
+
+-   <b>-v</b>: mount code base and data files from host directory to container directory <b>\[host_div\]</b>:<b>\[container_dir\]</b>. By exposing the host directory to docker container, docker will be able to access data files within that mounted directory and use them to fire up the \`MIRA\` dashboard.
+
+-   Change <b>/path/to/data</b> to your local directory where it contains all data files needed to pass to the \`MIRA\` dashboard. This directory is mounted to <b>/data</b> directory inside the container.
+
+-   Change <b>/path/to/MIRA</b> to your local \`MIRA\` directory. This directory must contain all of the code base needed to build the \`MIRA\` dashboard.
+
+-   <b>/var/run/docker.sock</b>:<b>/var/run/docker.sock</b> is used to connect the host's docker.socket to container's docker.socket where you can run a container inside of another container.
+
+-   <b>-d</b>: run the container in detached mode
+
+-   <b>-p</b>: map the host port to the container port and then all the requests that are made to the host port will be redirected to the Docker container <b>\[host_port\]:\[container_port\]</b>
+
+-   <b>\--name</b>: give an identity to the container
+
+For more information about the Docker syntax, see <a href="https://docs.docker.com/engine/reference/run/">Docker run reference</a>
+
+## 2. <a href="https://docs.docker.com/compose/">Docker-Compose</a>
+
+***Docker Compose*** is a tool for running multi-container applications on Docker defined using the Compose file format. Default is <b>docker-compose.yml</b>.
+
+Below is an example of a <b>docker-compose.yml</b> that is used to start up all four containers: <b>IRMA</b>, <b>DAIS-Ribosome</b>, <b>spyne</b>, and <b>MIRA</b> and allow them to communicate with each other using networking.
+
+``` {#docker-compose.yml .bash}
+version: "3.9"
+
+x-dais-version:
+  &dais-version 
+  public.ecr.aws/n3z8t4o2/dais-ribosome:1.2.1
+
+x-irma-version:
+  &irma-version 
+  public.ecr.aws/n3z8t4o2/irma:1.0.2p3
+
+x-spyne-git-version:
+  &spyne-git-version  
+  https://github.com/nbx0/spyne.git#prod
+
+x-mira-git-version:
+  &mira-git-version  
+  https://github.com/nbx0/MIRA.git#prod 
+
+x-data-volumes:
+  &data-volume
+  type: bind
+  source: /home/midas01/FLU_SC2_SEQUENCING/
+  target: /data
+
+x-docker-volumes:
+  &docker-socket
+  type: bind
+  source: /var/run/docker.sock 
+  target: /var/run/docker.sock 
+
+x-spyne-volumes:
+  &spyne-code
+  type: bind
+  source: /home/midas01/projects/spyne
+  target: /spyne 
+
+x-mira-volumes:
+  &mira-code
+  type: bind
+  source: /home/midas01/projects/MIRA
+  target: /MIRA
+
+services:
+  dais: 
+    container_name: dais  
+    image: *dais-version
+    networks:
+      - backend
+    volumes: 
+      - *data-volume
+    command: tail -f /dev/null
+
+  irma: 
+    container_name: irma
+    image: *irma-version
+    restart: always
+    networks:
+      - backend
+    volumes:
+      - *data-volume
+    command: tail -f /dev/null
+
+  spyne: 
+    container_name: spyne
+    image: spyne
+    build: 
+      context: *spyne-git-version 
+    depends_on:
+      - dais
+      - irma
+    restart: always
+    networks:
+      - backend
+    volumes:
+      - *data-volume
+      - *docker-socket
+      - *spyne-code
+    command: tail -f /dev/null
+
+  mira: 
+    container_name: mira
+    image: mira
+    build: 
+      context: *mira-git-version 
+    depends_on:
+      - dais
+      - irma
+      - spyne
+    restart: always
+    networks:
+      - frontend
+      - backend
+    ports: 
+      - 8010:8050
+    volumes:
+      - *data-volume
+      - *docker-socket
+      - *mira-code
+
+networks:
+  backend:
+    name: backend
+  frontend:
+    name: frontend
+```
+
+To start all containers in <b>docker-compose.yaml</b> at once
+
+``` bash
+docker-compose up -d
+```
+
+To stop and remove all containers in <b>docker-compose.yaml</b>
+
+``` bash
+ docker-compose down --rmi all -v --remove-orphans
+```
+
+## <a href="https://docs.github.com/en/actions/using-workflows/about-workflows">Github Workflows</a>
+
+A Github workflow, also known as <b>Github Action</b>, is a configurable automated process that can run one or more jobs.
+
+For example, you can create a workflow to build and test pull requests, another workflow to deploy your application every time a release is created, and still another workflow that adds a label every time someone opens a new issue.
+
+These actions are defined by a YAML file and stored in the `.github/workflows` directory in your repository. The Github Action will run whenever it is triggered by an event in your repository, or they can be triggered manually, or at a defined schedule.
+
+Below is an example of a github action that is currently used to build the <b>pkgdown</b> website for MIRA.
+
+``` bash
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  push:
+    branches: [prod]
+  pull_request:
+    branches: [prod]
+  release:
+    types: [published]
+  workflow_dispatch:
+  
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+      
+name: pkgdown
+
+jobs:
+  pkgdown:
+    runs-on: ubuntu-latest
+    # Only restrict concurrency for non-PR jobs
+    concurrency:
+      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgdown, local::.
+          needs: website
+
+      - name: Build site
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      - name: Deploy to GitHub pages 🚀
+        if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@v4.4.1
+        with:
+          token: ${{ secrets.GH_DOCS }}
+          branch: gh-pages-landing
+          folder: .
+          clean: false
+```
+
+Other <b>GitHub Actions</b> to consider:
+
+-   Automate a workflow to rebuild the Docker image for your application whenever a <b>Dockerfile</b> is altered or there is an update triggered by a push event in your repository
+
+-   A Github Action to check and test the building process of your R or Python packages
