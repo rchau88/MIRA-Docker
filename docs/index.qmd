@@ -52,20 +52,21 @@ digraph nicegraph {
     fontsize = 200;
     color = black;
     penwidth = 5;
+    tooltip = 'COMPOSE';
     
     subgraph cluster1 {
       label = 'Frontend';
       fontsize = 150;
       color = 'brown';
       penwidth = 5;
+      tooltip = 'FRONTEND';
     
       subgraph cluster2 {
         label = 'Container 1';
         fontname = Helvetica;
         fontsize = 120;
         color = none;
-        
-        MIRA [label = 'MIRA\\n(GUI)', width = 30, fontsize = 120];
+        MIRA [label = 'MIRA\\n(GUI)', width = 30, fontsize = 120, tooltip = 'a GUI web interface that allows users to interactively create a metadata and config file for running Influenza Genome and SARS-CoV-2 Spike-Gene assembly and curation'];
       }
     }
       
@@ -74,6 +75,7 @@ digraph nicegraph {
       fontsize = 150;
       color = 'brown';
       penwidth = 5;
+      tooltip = 'BACKEND';
      
       subgraph cluster4 {
         label = 'Container 2';
@@ -82,7 +84,7 @@ digraph nicegraph {
         fontsize = 120;
         color = none;
         
-        SPYNE [label = 'SPYNE\\n(Snakemake Manager)', width = 30, fontsize = 120];
+        SPYNE [label = 'SPYNE\\n(Snakemake Manager)', tooltip = 'a Snakemake workflow manager designed for running Influenza Genome and SARS-CoV-2 Spike-Gene assembly',  width = 30, fontsize = 120];
         CONFIG [label = 'Run Configs', width = 15, fontsize = 120];
         CURATION [label = 'Curation, QC &\\nFigure Generation', width = 15, fontsize = 120];
        }
@@ -93,7 +95,7 @@ digraph nicegraph {
         fontsize = 120;
         color = none;
         
-        IRMA [label = 'IRMA\\n(Genome and Spike-Gene Assembly)', width = 30, fontsize = 120];
+        IRMA [label = 'IRMA\\n(Genome and Spike-Gene Assembly)', tooltip = 'designed for the robust assembly, variant calling, and phasing of highly variable RNA viruses. IRMA is deployed with modules for influenza, ebolavirus and coronavirus.', width = 30, fontsize = 120];
       }
       
       subgraph cluster6 {
@@ -102,7 +104,7 @@ digraph nicegraph {
         fontsize = 120;
         color = none;
         
-        DAIS [label = 'DAIS-Ribosome\\n(Curation)', width = 20, fontsize = 120];
+        DAIS [label = 'DAIS-Ribosome\\n(Curation)', tooltip = 'compartmentalizes the translation engine developed for the CDC Influenza Division protein analytics database. The tool has been extended for use with Betacoronavirus.', width = 20, fontsize = 120];
       }
       
     }
@@ -115,22 +117,22 @@ digraph nicegraph {
     color = purple;
     penwidth = 5;
     
-    DS [label = 'Docker\\nSocket', width = 18, fontsize = 120];
-    RESULTS [label = 'Sequencing Files\\nDirectory', width = 18, fontsize = 120];
+    SOCKET [label = 'Docker\\nSocket', width = 18, fontsize = 120];
+    DATA [label = 'Sequencing Files\\nDirectory', width = 18, fontsize = 120];
   }
     
   MIRA -> SPYNE [label = 'trigger', color='green']
   SPYNE -> IRMA [label = 'Orchestrate', color='green']
   SPYNE -> DAIS [label = 'Orchestrate', color='green']
   SPYNE -> CURATION [label = 'Orchestrate', color='brown', style = dashed]
-  DS -> MIRA [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
-  DS -> IRMA [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
-  DS -> DAIS [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
-  MIRA -> RESULTS [color = 'black']
-  IRMA -> RESULTS [color = 'black']
-  DAIS -> RESULTS [color = 'black']
-  SPYNE -> RESULTS [color = 'black']
-  CURATION -> RESULTS [color = 'black']
+  SOCKET -> MIRA [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
+  SOCKET -> IRMA [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
+  SOCKET -> DAIS [arrowhead = none, arrowtail = none, style = dashed, color='blue', alpha = 0.5]
+  MIRA -> DATA [color = 'black']
+  IRMA -> DATA [color = 'black']
+  DAIS -> DATA [color = 'black']
+  SPYNE -> DATA [color = 'black']
+  CURATION -> DATA [color = 'black']
   SPYNE -> CONFIG [color='brown', style = dashed, penwidth = 10]
   
 }
