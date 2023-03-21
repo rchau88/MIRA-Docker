@@ -1,6 +1,7 @@
 ---
 title: "Containerizing MIRA"
-author: Ben Rambo-Martin, Kristine Lacek, Reina Chau
+subtitle: "<a href='https://github.com/nbx0/MIRA'>https://github.com/nbx0/MIRA</a>"
+author: "Ben Rambo-Martin, Kristine Lacek, Reina Chau"
 format: html
 editor: visual
 ---
@@ -145,7 +146,7 @@ Docker is **a software platform that allows you to build, test, and deploy appli
 
 Docker builds images automatically by reading the instructions from a ***Dockerfile.*** A Dockerfile is **a text document that contains all the commands a user could call on the command line to assemble an image**.
 
-Below is an example of a Dockerfile that is used to built the MIRA images.
+Below is an example of a Dockerfile that is used to built the MIRA image.
 
 ``` bash
 # Create a build argument
@@ -266,7 +267,7 @@ ENV PATH "$PATH:/MIRA"
 ENTRYPOINT ["bash", "dashboard-kickoff"]
 ```
 
-To build a docker image for <b>MIRA</b>, `cd` to where <b>Dockerfile</b> is stored and run the following command.
+To build a docker image for <b>MIRA</b>, `cd` to where <b>Dockerfile</b> is stored and run the following command line.
 
 ``` bash
 docker build -t MIRA:v1.0.0 .
