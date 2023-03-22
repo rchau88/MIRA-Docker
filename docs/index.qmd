@@ -313,7 +313,7 @@ Type in **http://localhost:8080** in your preferred web browse and check if the 
 
 ## 2. <a href="https://docs.docker.com/compose/">Docker-Compose</a>
 
-***Docker Compose*** is a tool for running multi-container applications on Docker defined using the Compose file format. Default is <b>docker-compose.yml</b>.
+***Docker Compose*** is a tool for running multi-container applications on Docker defined using the Compose file format. Default is <b>docker-compose.yaml</b>.
 
 Below is an example of a <b>docker-compose.yml</b> that is used to start up all four containers: <b>IRMA</b>, <b>DAIS-Ribosome</b>, <b>spyne</b>, and <b>MIRA</b> and allow them to communicate with each other using networking.
 
@@ -424,7 +424,7 @@ networks:
     name: frontend
 ```
 
-To start all containers in <b>docker-compose.yaml</b> at once
+To start all containers at once, `cd` to where <b>docker-compose.yaml</b> is stored and run the following command line.
 
 ``` bash
 docker-compose up -d
